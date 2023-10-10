@@ -1,0 +1,124 @@
+---
+#- name: Debian OS
+#  block:
+  
+#  when: ansible_os_family == "Debian"
+
+- name: Redhat OS
+  block:
+
+  # dnf install targetcli -y
+  - name: Install targetcli RedHat
+    ansible.builtin.dnf:
+      name:
+        - targetcli
+      state: latest
+  
+  when: ansible_os_family == "RedHat"
+
+# systemctl enable target --now
+- name: "Start and enable the target service"
+  service:
+    name: target
+    enabled: true
+    state: started
+  
+# mkdir /var/iSCSI
+- name: Create directory iscsi
+  ansible.builtin.file:
+    path: /var/iSCSI
+    state: directory
+    mode: '0755'
+
+#- name: Register a variable, ignore errors and continue
+#  ansible.builtin.command: /bin/false
+#  register: result
+#  ignore_errors: true
+
+# targetcli /backstores/fileio create name=file0 size=1G file_or_dev=/var/iSCSI/file0.IMG
+- name: Create fileio /var/iSCSI/file0.IMG
+  ansible.builtin.command: targetcli /backstores/fileio create name=file0 size=1G file_or_dev=/var/iSCSI/file0.IMG
+  #when: result is failed # failed, succeeded, skipped, changed
+  notify: targetcli saveconfig
+  ignore_errors: true
+
+# targetcli /backstores/block create name=block0 dev=/dev/vdb
+- name: Create block /dev/vdb
+  ansible.builtin.command: targetcli /backstores/block create name=block0 dev=/dev/vdb
+  #when: result is failed # failed, succeeded, skipped, changed
+  notify: targetcli saveconfig
+  ignore_errors: true
+
+# targetcli /backstores/ramdisk create name=ram0 size=1G
+- name: Create ramdisk ram0
+  ansible.builtin.command: targetcli /backstores/ramdisk create name=ram0 size=1G
+  #when: result is failed # failed, succeeded, skipped, changed
+  notify: targetcli saveconfig
+  ignore_errors: true
+
+# targetcli /iscsi create wwn=iqn.2023-09.local.otus:storage.target00
+- name: Create 
+  ansible.builtin.command: targetcli /iscsi create wwn=iqn.2023-09.local.otus:storage.target00
+  #when: result is failed # failed, succeeded, skipped, changed
+  notify: targetcli saveconfig
+  ignore_errors: true
+
+## targetcli /iscsi/iqn.2023-09.local.otus:storage.target00/tpg1/portals create 0.0.0.0
+#- name: Create portals for ip 0.0.0.0
+#  ansible.builtin.command: targetcli /iscsi/iqn.2023-09.local.otus:storage.target00/tpg1/portals create 0.0.0.0
+#  when: result is failed # failed, succeeded, skipped, changed
+#  notify: targetcli saveconfig
+#  ignore_errors: true
+
+# targetcli /iscsi/iqn.2023-09.local.otus:storage.target00/tpg1/luns create /backstores/fileio/file0 lun=0
+- name: Create LUN0 for fileio target file0
+  ansible.builtin.command: targetcli /iscsi/iqn.2023-09.local.otus:storage.target00/tpg1/luns create /backstores/fileio/file0 lun=0
+  #when: result is failed # failed, succeeded, skipped, changed
+  notify: targetcli saveconfig
+  ignore_errors: true
+
+# targetcli /iscsi/iqn.2023-09.local.otus:storage.target00/tpg1/luns create /backstores/block/block0 lun=1
+- name: Create LUN1 for block target block0
+  ansible.builtin.command: targetcli /iscsi/iqn.2023-09.local.otus:storage.target00/tpg1/luns create /backstores/block/block0 lun=1
+  #when: result is failed # failed, succeeded, skipped, changed
+  notify: targetcli saveconfig
+  ignore_errors: true
+  
+# targetcli /iscsi/iqn.2023-09.local.otus:storage.target00/tpg1/luns create /backstores/ramdisk/ram0 lun=2
+- name: Create LUN2 for ramdisk target ram0
+  ansible.builtin.command: targetcli /iscsi/iqn.2023-09.local.otus:storage.target00/tpg1/luns create /backstores/ramdisk/ram0 lun=2
+  #when: result is failed # failed, succeeded, skipped, changed
+  notify: targetcli saveconfig
+  ignore_errors: true
+
+# targetcli /iscsi/iqn.2023-09.local.otus:storage.target00/tpg1 set attribute authentication=0
+- name: Set attribute authentication=0
+  ansible.builtin.command: targetcli /iscsi/iqn.2023-09.local.otus:storage.target00/tpg1 set attribute authentication=0
+  #when: result is failed # failed, succeeded, skipped, changed
+  notify: targetcli saveconfig
+  ignore_errors: true
+
+# targetcli /iscsi/iqn.2023-09.local.otus:storage.target00/tpg1 set auth userid=otus
+- name: Set auth userid=otus
+  ansible.builtin.command: targetcli /iscsi/iqn.2023-09.local.otus:storage.target00/tpg1 set auth userid=otus
+  #when: result is failed # failed, succeeded, skipped, changed
+  notify: targetcli saveconfig
+  ignore_errors: true
+
+# targetcli /iscsi/iqn.2023-09.local.otus:storage.target00/tpg1 set auth password=otus1234
+- name: Set auth password=otus1234
+  ansible.builtin.command: targetcli /iscsi/iqn.2023-09.local.otus:storage.target00/tpg1 set auth password=otus1234
+  #when: result is failed # failed, succeeded, skipped, changed
+  notify: targetcli saveconfig
+  ignore_errors: true
+  
+# targetcli /iscsi/iqn.2023-09.local.otus:storage.target00/tpg1/acls create iqn.2023-09.local.sergsha:pcs
+- name: Create ACL access
+  ansible.builtin.command: "targetcli /iscsi/iqn.2023-09.local.otus:storage.target00/tpg1/acls create {{ item }}"
+  #when: result is failed # failed, succeeded, skipped, changed
+  with_items: 
+    - iqn.2023-09.local.sergsha:pcs-01
+    - iqn.2023-09.local.sergsha:pcs-02
+    - iqn.2023-09.local.sergsha:pcs-03
+  notify: targetcli saveconfig
+  ignore_errors: true

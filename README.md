@@ -40,5 +40,41 @@ terraform и ansible роль для развертывания серверов
 
 #### Создание стенда
 
+Стенд будем разворачивать с помощью Terraform на YandexCloud, настройку серверов будем выполнять с помощью Ansible.
 
+Необходимые файлы размещены в репозитории GitHub по ссылке:
+```
+https://github.com/SergSha/lab-03.git
+```
+
+Схема:
+
+<img src="pics/infra.png" alt="infra.png" />
+
+Для начала получаем OAUTH токен:
+```
+https://cloud.yandex.ru/docs/iam/concepts/authorization/oauth-token
+```
+
+Настраиваем аутентификации в консоли:
+```
+export YC_TOKEN=$(yc iam create-token)
+export TF_VAR_yc_token=$YC_TOKEN
+```
+
+Для того чтобы развернуть стенд, нужно выполнить следующую команду:
+```
+git clone https://github.com/SergSha/lab-03.git && cd ./lab-03 && \
+terraform init && terraform apply -auto-approve && \
+sleep 30 && ansible-playbook ./provision.yml
+```
+
+На всех серверах будут установлены ОС Almalinux 8, настроены смнхронизация времени Chrony, в качестве firewall будет использоваться NFTables.
+
+#### iSCSI-target
+
+Сервер iscsi-01 будет служить iSCSI таргетом. В нём будут настроены три типа таргета:
+  - fileio,
+  - block,
+  - ramdisk.
 

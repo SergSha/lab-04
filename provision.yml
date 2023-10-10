@@ -1,0 +1,10 @@
+---
+- hosts: all
+  #remote_user: cloud-user
+  become: true
+  serial: 5
+
+  roles:
+    - chrony
+    - { role: iscsi-servers, when: "'iscsi_servers' in group_names" }
+    - { role: pcs-servers, when: "'pcs_servers' in group_names" }
