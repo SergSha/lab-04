@@ -1,0 +1,21 @@
+vrrp_script chk_haproxy {
+  script "killall -0 haproxy"
+  interval 2
+  weight 2
+}
+vrrp_instance VI_1 {
+  interface eth1
+  state MASTER or BACKUP    <=== USE JINJA           
+  virtual_router_id 1
+  priority 101
+  virtual_ipaddress {
+    10.0.26.81
+  }
+  track_script {
+    chk_haproxy
+  }
+  authentication {
+    auth_type PASS
+    auth_pass secret_password
+  }
+}

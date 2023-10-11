@@ -1,0 +1,9 @@
+---
+#- name: Include nftables service
+#  include_tasks: nftables.yml
+
+- name: Include sysctl configure
+  include_tasks: sysctl.yml
+
+- name: Include keepalived service
+  include_tasks: keepalived.yml

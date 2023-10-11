@@ -51,7 +51,7 @@ data "yandex_compute_instance" "haproxy-servers" {
   name = module.haproxy-servers[count.index].vm_name
   depends_on = [ module.haproxy-servers ]
 }
-
+/*
 module "backend-servers" {
   source = "./modules/instances"
   count = local.backend_count
@@ -99,13 +99,13 @@ data "yandex_compute_instance" "db-servers" {
   name = module.db-servers[count.index].vm_name
   depends_on = [ module.db-servers ]
 }
-
+*/
 resource "local_file" "inventory_file" {
   content = templatefile("${path.module}/templates/inventory.tpl",
     {
       haproxy-servers = data.yandex_compute_instance.haproxy-servers
-      backend-servers   = data.yandex_compute_instance.backend-servers
-      db-servers   = data.yandex_compute_instance.db-servers
+#      backend-servers   = data.yandex_compute_instance.backend-servers
+#      db-servers   = data.yandex_compute_instance.db-servers
     }
   )
   filename = "${path.module}/inventory.ini"
@@ -115,9 +115,9 @@ resource "local_file" "group_vars_all_file" {
   content = templatefile("${path.module}/templates/group_vars_all.tpl",
     {
       haproxy-servers = data.yandex_compute_instance.haproxy-servers
-      backend-servers   = data.yandex_compute_instance.backend-servers
-      db-servers   = data.yandex_compute_instance.db-servers
-      subnet_cidrs  = local.subnet_cidrs
+#      backend-servers = data.yandex_compute_instance.backend-servers
+#      db-servers      = data.yandex_compute_instance.db-servers
+      subnet_cidrs    = local.subnet_cidrs
     }
   )
   filename = "${path.module}/group_vars/all/main.yml"

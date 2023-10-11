@@ -5,6 +5,12 @@ ip_address:
 %{ for haproxy-server in haproxy-servers ~}
   ${ haproxy-server["name"] }: ${ haproxy-server.network_interface[0].ip_address }
 %{ endfor ~}
+%{ for backend-server in backend-servers ~}
+  ${ backend-server["name"] }: ${ backend-server.network_interface[0].ip_address }
+%{ endfor ~}
+%{ for db-server in db-servers ~}
+  ${ db-server["name"] }: ${ db-server.network_interface[0].ip_address }
+%{ endfor ~}
 
 
 domain: "mydomain.test"

@@ -9,7 +9,7 @@ output "haproxy-servers-info" {
     }
   }
 }
-
+/*
 output "backend-servers-info" {
   description = "General information about created VMs"
   value = {
@@ -31,3 +31,4 @@ output "db-servers-info" {
     }
   }
 }
+*/
