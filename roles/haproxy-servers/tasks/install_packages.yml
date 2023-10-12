@@ -9,6 +9,7 @@
         - keepalived
         - haproxy
       state: latest
+      update_cache: true
   
   when: ansible_os_family == "Debian"
 
@@ -22,5 +23,6 @@
         - keepalived
         - haproxy
       state: latest
+      update_cache: true
   
   when: ansible_os_family == "RedHat"

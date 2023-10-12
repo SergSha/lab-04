@@ -5,7 +5,8 @@ vrrp_script chk_haproxy {
 }
 vrrp_instance VI_1 {
   interface eth1
-  state MASTER or BACKUP    <=== USE JINJA           
+  state {% if ansible_hostname == 'haproxy-01' %}MASTER{% elif ansible_hostname == 'haproxy-02' %}BACKUP{% endif %}
+
   virtual_router_id 1
   priority 101
   virtual_ipaddress {
