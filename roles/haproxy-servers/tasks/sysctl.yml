@@ -3,11 +3,11 @@
 # sudo sysctl -p /etc/sysctl.conf
 - name: Change sysctl config
   ansible.posix.sysctl:
-    name: "{{ item.key }}"
+    name: "{{ item.name }}"
     value: "{{ item.value }}"
     sysctl_set: true
     state: present
     reload: true
   loop: 
-    - { key: 'net.ipv4.ip_forward', value: '1' }
-    - { key: 'net.ipv4.ip_nonlocal_bind', value: '1' }
+    - { name: 'net.ipv4.ip_forward', value: '1' }
+    - { name: 'net.ipv4.ip_nonlocal_bind', value: '1' }

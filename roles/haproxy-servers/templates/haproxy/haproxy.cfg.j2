@@ -25,5 +25,5 @@ default_backend http_back
 backend http_back
 balance roundrobin
 mode http
-server webserver1 192.168.250.77:80 check # ip_address_of_1st_centos_webserver
-server webserver2 192.168.250.78:80 check # ip_address_of_2nd_centos_webserver
+server webserver1 {{ ip_address['backend-01'] }}:80 check # ip_address_of_1st_webserver
+server webserver2 {{ ip_address['backend-02'] }}:80 check # ip_address_of_2nd_webserver

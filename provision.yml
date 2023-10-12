@@ -7,5 +7,5 @@
   roles:
     - chrony
     - { role: haproxy-servers, when: "'haproxy_servers' in group_names" }
-    #- { role: backend-servers, when: "'backend_servers' in group_names" }
+    - { role: backend-servers, when: "'backend_servers' in group_names" }
     #- { role: db-servers, when: "'db_servers' in group_names" }
