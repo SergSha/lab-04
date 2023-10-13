@@ -101,8 +101,17 @@
     - phpinfo.php
 
 # systemctl restart php-fpm.service
-- name: Start php-fpm service
+- name: Start php-fpm service Debian
   ansible.builtin.service:
     name: php{{ php_version }}-fpm
     state: restarted
     enabled: yes
+  when: ansible_os_family == "Debian"
+
+# systemctl restart php-fpm.service
+- name: Start php-fpm service Redhat
+  ansible.builtin.service:
+    name: php-fpm
+    state: restarted
+    enabled: yes
+  when: ansible_os_family == "RedHat"
