@@ -57,3 +57,4 @@
     name: nginx
     state: restarted
     enabled: yes
+  ignore_errors: true
