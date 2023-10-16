@@ -29,7 +29,7 @@
       deb: https://repo.percona.com/apt/percona-release_latest.generic_all.deb
       update_cache: yes
 
-  - name: Update apt cache
+  - name: Update cache
     ansible.builtin.apt: 
       update_cache: yes
 
@@ -44,25 +44,45 @@
       state: latest
       update_cache: true
 
+  - name: Set new root password
+    ansible.builtin.shell: >
+      mysql --connect-expired-password -e "ALTER USER '{{ mysql_root_user }}'@'localhost' IDENTIFIED WITH mysql_native_password BY '{{ mysql_root_password }}';"
+    changed_when: false
+    failed_when: false
+
+  - name: Create .mycnf file for root user
+    ansible.builtin.copy:
+      dest: "{{ ansible_env.HOME }}/.my.cnf"
+      mode: 0600
+      content: |
+        [client]
+        user={{ mysql_root_user }}
+        password={{ mysql_root_password }}
+    notify: restart percona
+
+#  - name: Update MySQL root password
+#    community.mysql.mysql_user: 
+#      name: "{{ mysql_root_user }}" 
+#      host: "{{ item }}"
+#      password: "{{ mysql_root_password }}"
+#      login_user: "{{ mysql_root_user }}"
+#      login_password: "{{ mysql_root_password }}"
+#      check_implicit_admin: yes
+#    with_items:
+#      - "{{ ansible_hostname }}"
+#      - 127.0.0.1
+#      - localhost
+#    ignore_errors: true
+
   when: ansible_os_family == "Debian"
 
 - name: RedHat OS
   block:
 
-  ## dnf install gnupg2
-  #- name: Install gnupg2 RedHat
-  #  ansible.builtin.dnf:
-  #    name: 
-  #      - gnupg2
-  #      #- lsb-release
-  #      #- python3-mysqldb
-  #    state: latest
-  #    update_cache: true
-
-
-  - ansible.builtin.rpm_key:
-      state: present
+  - name: install percona key
+    ansible.builtin.rpm_key:
       key: https://www.percona.com/downloads/RPM-GPG-KEY-percona
+      state: present
 
   #- ansible.builtin.rpm_key:
   #    state: present
@@ -78,18 +98,15 @@
   #    name: "http://rpms.remirepo.net/enterprise/remi-release-8.rpm"
   #    state: present
 
-
-
-
   # wget https://repo.percona.com/yum/percona-release-latest.noarch.rpm
   # rpm -i percona-release-latest.noarch.rpm
-  - name: Install a rpm package from the internet RedHat
-    ansible.builtin.dnf:
+  - name: Install percona repo
+    ansible.builtin.package:
       name: 'https://repo.percona.com/yum/percona-release-latest.noarch.rpm'
       state: present
       update_cache: true
 
-  - name: Update dnf cache
+  - name: Update cache
     ansible.builtin.dnf: 
       update_cache: yes
 
@@ -97,59 +114,77 @@
     ansible.builtin.shell: echo 'y' | percona-release setup ps80
 
   # dnf install Percona-Server-server-80
-  - name: Install percona-server-server RedHat
-    ansible.builtin.dnf:
+  - name: Install packages
+    ansible.builtin.package:
       name: 
         - percona-server-server
         - python3-PyMySQL
       state: latest
 
+  - name: Write custom server configuration
+    ansible.builtin.template:
+      src: percona/my.cnf.j2
+      dest: /etc/my.cnf.d/my.cnf
+      owner: root
+      mode: 0644
+    notify:
+    - restart percona
+
+  # systemctl restart percona
+  - name: Restart Percona service
+    ansible.builtin.service:
+      name: mysql
+      state: restarted
+      enabled: yes
+
+  - name: Get temporary mysql root password
+    ansible.builtin.shell: grep 'temporary password' /var/log/mysqld.log | awk '{print $NF}' | tail -n 1
+    register: temp_mysql_root_password
+
+#- ansible.builtin.debug: 
+#    var: temp_mysql_root_password.stdout
+
+  - ansible.builtin.debug: 
+      msg: "{{ temp_mysql_root_password.stdout }}"
+
+  - name: Create .my.cnf file for root user
+    ansible.builtin.copy:
+      dest: "{{ ansible_env.HOME }}/.my.cnf"
+      mode: 0600
+      content: |
+        [client]
+        user={{ mysql_root_user | quote }}
+        password={{ temp_mysql_root_password.stdout | quote }}
+    notify: restart percona
+
+  - name: Set new root password
+    ansible.builtin.shell: mysql --connect-expired-password -e "ALTER USER '{{ mysql_root_user }}'@'localhost' IDENTIFIED WITH mysql_native_password BY '{{ mysql_root_password }}';"
+    changed_when: false
+    failed_when: false
+
+  - name: Change root password in .my.cnf.
+    ansible.builtin.lineinfile:
+      path: "{{ ansible_env.HOME }}/.my.cnf"
+      state: present
+      regexp: '^.?password=*'
+      line: "password={{ mysql_root_password | quote }}"
+    notify: restart percona
+
   when: ansible_os_family == "RedHat"
 
-# systemctl restart percona
-- name: Restart Percona service
-  ansible.builtin.service:
-    name: mysql
-    state: restarted
-    enabled: yes
-
-- name: Get temporary mysql root password
-  ansible.builtin.shell: grep 'root@localhost:' /var/log/mysqld.log | awk '{print $13}'
-  register: temp_mysql_root_password
-
-- ansible.builtin.debug: 
-    var: temp_mysql_root_password.stdout
-
-- ansible.builtin.debug: 
-    msg: "{{ temp_mysql_root_password.stdout }}"
-
-- name: Update MySQL root password
-  community.mysql.mysql_user: 
-    name: root 
-    host: "{{ item }}"
-    password: "{{ mysql_root_password }}"
-    login_user: root
-    login_password: "{{ temp_mysql_root_password.stdout }}"
-    check_implicit_admin: yes
-  with_items:
-    #- "{{ ansible_hostname }}"
-    - 127.0.0.1
-    #- localhost
-  ignore_errors: true
-
-- name: Copy .my.cnf file with root password credentials
-  ansible.builtin.template: 
-    src: percona/root-my.cnf.j2
-    dest: /root/.my.cnf
-    owner: root
-    mode: 0600
+## systemctl restart percona
+#- name: Restart Percona service
+#  ansible.builtin.service:
+#    name: mysql
+#    state: restarted
+#    enabled: yes
 
 - name: Ensure anonymous users are not in the database
   community.mysql.mysql_user: 
     name: ''
     host: "{{ item }}"
     state: absent
-    login_user: root
+    login_user: "{{ mysql_root_user }}"
     login_password: "{{ mysql_root_password }}"
   with_items:
     - "{{ ansible_hostname }}"
@@ -159,7 +194,7 @@
   community.mysql.mysql_db:
     name: test
     state: absent
-    login_user: root
+    login_user: "{{ mysql_root_user }}"
     login_password: "{{ mysql_root_password }}"
 
 #- name: Create fnv1a_64
@@ -196,15 +231,6 @@
 #  - 04-slow-query.cnf
 #  - 05-binlog.cnf
 
-- name: Write custom server configuration
-  ansible.builtin.template:
-    src: percona/my.cnf.j2
-    dest: /etc/mysql/my.cnf
-    owner: root
-    mode: 0644
-  #notify:
-  #  - Restart Percona service
-
 # systemctl restart percona
 - name: Restart Percona service
   ansible.builtin.service:
@@ -217,30 +243,23 @@
     name: "{{ db_name }}"
     state: "present"
     collation: "{{ db_collation }}"
-    login_user: root
+    login_user: "{{ mysql_root_user }}"
     login_password: "{{ mysql_root_password }}"
-  tags:
-    - createdatabase
 
 - name: Copy SQL dump file to the server
   ansible.builtin.copy:
     src: "percona/{{ db_dump_file }}"
     dest: /tmp
   when: db_dump_file != ""
-  tags:
-    - copydumpfile
-    - dumpfile
 
 - name: Dump file into the database
   community.mysql.mysql_db: 
     name: "{{ db_name }}"
     state: import
     target: "/tmp/{{ db_dump_file | basename }}"
-    login_user: root
+    login_user: "{{ mysql_root_user }}"
     login_password: "{{ mysql_root_password }}"
   when: db_dump_file != ""
-  tags:
-    - dumpfile
 
 - name: Create Application user database
   community.mysql.mysql_user: 
@@ -249,10 +268,8 @@
     priv: "{{ db_name }}.*:ALL"
     host: "{{ db_host }}"
     state: present
-    login_user: root
+    login_user: "{{ mysql_root_user }}"
     login_password: "{{ mysql_root_password }}"
-  tags:
-    - createuserdatabase
 
 - name: Create Application user database
   community.mysql.mysql_user:
@@ -261,10 +278,8 @@
     priv: "{{ db_name }}.*:ALL"
     host: "{{ db_host }}"
     state: present
-    login_user: root
+    login_user: "{{ mysql_root_user }}"
     login_password: "{{ mysql_root_password }}"
-  tags:
-    - createuserdatabase
 
 
 

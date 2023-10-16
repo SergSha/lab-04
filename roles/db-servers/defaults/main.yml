@@ -1,7 +1,7 @@
 ---
 # Define root password for percona server
 mysql_root_user: root
-mysql_root_password: rootOtus1234
+mysql_root_password: root@Otus1234
 
 ## Define replica user for percona server
 #mysql_repl_user: repl
@@ -13,7 +13,7 @@ mysql_root_password: rootOtus1234
 
 ## Define php site user for percona server
 #mysql_php_user: phpadmin
-#mysql_php_password: phpadminOtus1234
+#mysql_php_password: phpadmin@Otus1234
 
 # Some defaults variables for percona server config file
 #mysql_port: 3306

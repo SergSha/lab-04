@@ -1,7 +1,7 @@
 ---
 # Define php site user for percona server
 mysql_php_user: phpadmin
-mysql_php_password: phpadminOtus1234
+mysql_php_password: phpadmin@Otus1234
 
 # Some defaults variables for percona server config file
 mysql_port: 3306
@@ -11,6 +11,6 @@ create_app_db: true
 db_name: cars
 db_collation: utf8_general_ci
 db_user: myuser
-db_user_password: anotherreallylongpassword
+db_user_password: anotherreallylongP@ssw0rd
 db_host: "%"
 db_dump_file: "cars.sql"

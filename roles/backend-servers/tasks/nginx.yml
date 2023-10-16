@@ -44,7 +44,7 @@
   - name: Template nginx config files
     ansible.builtin.template:
       src: "nginx/{{ item }}.j2"
-      dest: "/etc/nginx/conf.d/{{ item }}"
+      dest: "/etc/nginx/conf.d/{{ item }}.conf"
     loop:
       #- upstreams.conf
       - phpsite

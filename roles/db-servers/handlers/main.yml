@@ -1,7 +1,7 @@
 ---
 # systemctl restart percona
-- name: Restart Percona service
+- name: restart percona
   ansible.builtin.service:
-    name: mysql
+    name: mysqld
     state: restarted
     enabled: yes
