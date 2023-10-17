@@ -5,7 +5,7 @@ flush ruleset
 table ip filter {
 
         chain NGINX_INP {
-                tcp dport 80 ct state new counter accept
+                tcp dport 8080 ct state new counter accept
         }
         chain PHP_FPM_INP {
                 tcp dport 9000 ct state new counter accept

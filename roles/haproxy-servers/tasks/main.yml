@@ -8,8 +8,8 @@
 - name: Include install packages
   include_tasks: install_packages.yml
 
-- name: Include keepalived service
-  include_tasks: keepalived.yml
+#- name: Include keepalived service
+#  include_tasks: keepalived.yml
 
 - name: Include haproxy service
   include_tasks: haproxy.yml

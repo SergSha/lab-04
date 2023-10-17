@@ -135,6 +135,47 @@ data "yandex_compute_disk" "disks" {
   name       = each.value["name"]
   depends_on = [yandex_compute_disk.disks]
 }
+
+resource "yandex_alb_http_router" "test-router" {
+  name   = "my-test-router"
+}
+
+resource "yandex_alb_load_balancer" "test-balancer" {
+  name        = "my-load-balancer"
+
+  network_id  = yandex_vpc_network.vpc.id
+  
+  allocation_policy {
+    location {
+      zone_id   = "ru-central1-b"
+      subnet_id = yandex_vpc_subnet.subnet.id 
+    }
+  }
+  
+  listener {
+    name = "my-listener"
+    endpoint {
+      address {
+        external_ipv4_address {
+        }
+      }
+      ports = [ 80 ]
+    }    
+    http {
+      handler {
+        http_router_id = yandex_alb_http_router.test-router.id
+      }
+    }
+  }
+  
+  #log_options {
+  #  discard_rule {
+  #    #http_code_intervals = ["2XX"]
+  #    http_code_intervals = ["ALL"]
+  #    discard_percent = 75
+  #  }
+  #}
+}
 /*
 resource "null_resource" "haproxy-servers" {
 

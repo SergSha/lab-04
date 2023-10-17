@@ -2,8 +2,8 @@
 # ln -s /etc/nginx/sites-{available/upstreams,enabled/default}
 
 server {
-    listen 80 default_server;
-    listen [::]:80 default_server;
+    listen 8080 default_server;
+    listen [::]:8080 default_server;
     set $root_path /var/www/html;
 
     root $root_path;
