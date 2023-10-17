@@ -4,7 +4,7 @@ locals {
   ssh_private_key = "~/.ssh/otus"
   #vm_name         = "instance"
   vpc_name        = "my_vpc_network"
-  subnet_cidrs    = ["10.10.20.0/24"]
+  subnet_cidrs    = ["10.10.10.0/24","10.10.20.0/24","10.10.30.0/24"]
   subnet_name     = "my_vpc_subnet"
   haproxy_count   = "2"
   backend_count   = "2"
