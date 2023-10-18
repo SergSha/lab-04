@@ -4,8 +4,30 @@ locals {
   ssh_private_key = "~/.ssh/otus"
   #vm_name         = "instance"
   vpc_name        = "my_vpc_network"
-  subnet_cidrs    = ["10.10.10.0/24","10.10.20.0/24","10.10.30.0/24"]
-  subnet_name     = "my_vpc_subnet"
+
+  #folders = {
+  #  "keepalived_folder" = {}
+  #  "haproxy_folder" = {}
+  #  "backend_folder" = {}
+  #}
+
+  subnets = {
+    "keepalived_subnet" = {
+      #folder         = local.folders["keepalived_folder"]
+      v4_cidr_blocks = ["10.10.10.0/24"]
+    }
+    "haproxy_subnet" = {
+      #folder         = local.folders["haproxy_folder"]
+      v4_cidr_blocks = ["10.10.20.0/24"]
+    }
+    "backend_subnet" = {
+      #folder         = local.folders["backend_folder"]
+      v4_cidr_blocks = ["10.10.30.0/24"]
+    }
+  }
+
+  subnet_cidrs    = ["10.10.50.0/24"]
+  #subnet_name     = "my_vpc_subnet"
   haproxy_count   = "2"
   backend_count   = "2"
   db_count        = "1"
@@ -19,27 +41,63 @@ locals {
   }
 }
 
+#resource "yandex_resourcemanager_folder" "folders" {
+#  for_each = local.folders
+#  name     = each.key
+#  cloud_id = local.cloud_id
+#}
+
+#data "yandex_resourcemanager_folder" "folders" {
+#  for_each   = yandex_resourcemanager_folder.folders
+#  name       = each.value["name"]
+#  depends_on = [yandex_resourcemanager_folder.folders]
+#}
+
+
 resource "yandex_vpc_network" "vpc" {
   # folder_id = var.folder_id
   name = local.vpc_name
 }
 
-resource "yandex_vpc_subnet" "subnet" {
-  # folder_id = var.folder_id
-  v4_cidr_blocks = local.subnet_cidrs
+#resource "yandex_vpc_subnet" "subnet" {
+#  count          = length(local.subnet_cidrs)
+#  # folder_id = var.folder_id
+#  v4_cidr_blocks = local.subnet_cidrs
+#  zone           = local.zone
+#  name           = "${local.subnet_name}${format("%1d", count.index + 1)}"
+#  network_id     = yandex_vpc_network.vpc.id
+#}
+
+resource "yandex_vpc_subnet" "subnets" {
+  for_each = local.subnets
+  name           = each.key
+  #folder_id      = data.yandex_resourcemanager_folder.folders["keepalived_folder"].id
+  v4_cidr_blocks = each.value["v4_cidr_blocks"]
   zone           = local.zone
-  name           = local.subnet_name
   network_id     = yandex_vpc_network.vpc.id
 }
+
+#data "yandex_vpc_subnet" "subnets" {
+#  for_each   = yandex_vpc_subnet.subnets
+#  name       = each.value["name"]
+#  depends_on = [yandex_vpc_subnet.subnets]
+#}
 
 module "haproxy-servers" {
   source         = "./modules/instances"
   count          = local.haproxy_count
   vm_name        = "haproxy-${format("%02d", count.index + 1)}"
   vpc_name       = local.vpc_name
-  subnet_cidrs   = yandex_vpc_subnet.subnet.v4_cidr_blocks
-  subnet_name    = yandex_vpc_subnet.subnet.name
-  subnet_id      = yandex_vpc_subnet.subnet.id
+  network_interface = {
+    for subnet in yandex_vpc_subnet.subnets :
+    subnet.name => {
+      subnet_id = subnet.id
+    }
+    if subnet.name == "keepalived_subnet" #|| subnet.name == "haproxy_subnet"
+  }
+  #subnet_cidrs   = yandex_vpc_subnet.subnet.v4_cidr_blocks
+  #subnet_name    = yandex_vpc_subnet.subnet.name
+  #subnet_id      = yandex_vpc_subnet.subnet.id
   vm_user        = local.vm_user
   ssh_public_key = local.ssh_public_key
   secondary_disk = {}
@@ -57,13 +115,20 @@ module "backend-servers" {
   count          = local.backend_count
   vm_name        = "backend-${format("%02d", count.index + 1)}"
   vpc_name       = local.vpc_name
-  subnet_cidrs   = yandex_vpc_subnet.subnet.v4_cidr_blocks
-  subnet_name    = yandex_vpc_subnet.subnet.name
-  subnet_id      = yandex_vpc_subnet.subnet.id
+  network_interface = {
+    for subnet in yandex_vpc_subnet.subnets :
+    subnet.name => {
+      subnet_id = subnet.id
+    }
+    if subnet.name == "haproxy_subnet" #|| subnet.name == "backend_subnet"
+  }
+  #subnet_cidrs   = yandex_vpc_subnet.subnet.v4_cidr_blocks
+  #subnet_name    = yandex_vpc_subnet.subnet.name
+  #subnet_id      = yandex_vpc_subnet.subnet.id
   vm_user        = local.vm_user
   ssh_public_key = local.ssh_public_key
   secondary_disk = {
-    for disk in data.yandex_compute_disk.disks :
+    for disk in yandex_compute_disk.disks :
     disk.name => {
       disk_id = disk.id
       #"auto_delete" = true
@@ -85,9 +150,16 @@ module "db-servers" {
   count          = local.db_count
   vm_name        = "db-${format("%02d", count.index + 1)}"
   vpc_name       = local.vpc_name
-  subnet_cidrs   = yandex_vpc_subnet.subnet.v4_cidr_blocks
-  subnet_name    = yandex_vpc_subnet.subnet.name
-  subnet_id      = yandex_vpc_subnet.subnet.id
+  network_interface = {
+    for subnet in yandex_vpc_subnet.subnets :
+    subnet.name => {
+      subnet_id = subnet.id
+    }
+    if subnet.name == "backend_subnet"
+  }
+  #subnet_cidrs   = yandex_vpc_subnet.subnet.v4_cidr_blocks
+  #subnet_name    = yandex_vpc_subnet.subnet.name
+  #subnet_id      = yandex_vpc_subnet.subnet.id
   vm_user        = local.vm_user
   ssh_public_key = local.ssh_public_key
   secondary_disk = {}
@@ -148,7 +220,7 @@ resource "yandex_alb_load_balancer" "test-balancer" {
   allocation_policy {
     location {
       zone_id   = "ru-central1-b"
-      subnet_id = yandex_vpc_subnet.subnet.id 
+      subnet_id = yandex_vpc_subnet.subnets["keepalived_subnet"].id 
     }
   }
   

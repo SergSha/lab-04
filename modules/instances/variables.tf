@@ -13,20 +13,26 @@ variable "zone" {
   description = "zone"
 }
 
-variable "subnet_name" {
-  type = string
-  description = "subnet name"
+variable "network_interface" {
+  description = "Additional network interface to attach to the instance"
+  type        = map(map(string))
+  default     = {}
 }
 
-variable "subnet_id" {
-  type = string
-  description = "subnet id"
-}
+#variable "subnet_name" {
+#  type = string
+#  description = "subnet name"
+#}
 
-variable "subnet_cidrs" {
-  type = list(string)
-  description = "CIDRs"
-}
+#variable "subnet_id" {
+#  type = string
+#  description = "subnet id"
+#}
+
+#variable "subnet_cidrs" {
+#  type = list(string)
+#  description = "CIDRs"
+#}
 /*
 variable "subnet_cidrs" {}
 */

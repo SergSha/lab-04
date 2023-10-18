@@ -37,11 +37,21 @@ resource "yandex_compute_instance" "instances" {
     }
   }
 
-  network_interface {
-    subnet_id          = var.subnet_id
-    nat                = var.nat
-    ip_address         = var.internal_ip_address
-    nat_ip_address     = var.nat_ip_address
+  #network_interface {
+  #  subnet_id          = var.subnet_id
+  #  nat                = var.nat
+  #  ip_address         = var.internal_ip_address
+  #  nat_ip_address     = var.nat_ip_address
+  #}
+
+  dynamic "network_interface" {
+    for_each = var.network_interface
+    content {
+      subnet_id      = lookup(network_interface.value, "subnet_id")
+      nat            = lookup(network_interface.value, "nat", false)
+      #ip_address     = lookup(network_interface.value, "ip_address", var.internal_ip_address)
+      #nat_ip_address = lookup(network_interface.value, "nat_ip_address", var.nat_ip_address)
+    }
   }
 
   metadata = {
