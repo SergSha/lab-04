@@ -5,25 +5,24 @@ locals {
   #vm_name         = "instance"
   vpc_name        = "my_vpc_network"
 
-  #folders = {
-  #  "keepalived_folder" = {}
-  #  "haproxy_folder" = {}
-  #  "backend_folder" = {}
-  #}
+  folders = {
+    "loadbalancer-folder" = {}
+    #"haproxy_folder" = {}
+    #"backend_folder" = {}
+  }
 
   subnets = {
-    "keepalived_subnet" = {
-      #folder         = local.folders["keepalived_folder"]
+    "loadbalancer-subnet" = {
       v4_cidr_blocks = ["10.10.10.0/24"]
     }
-    "haproxy_subnet" = {
-      #folder         = local.folders["haproxy_folder"]
+    /*
+    "haproxy-subnet" = {
       v4_cidr_blocks = ["10.10.20.0/24"]
     }
-    "backend_subnet" = {
-      #folder         = local.folders["backend_folder"]
+    "backend-subnet" = {
       v4_cidr_blocks = ["10.10.30.0/24"]
     }
+    */
   }
 
   subnet_cidrs    = ["10.10.50.0/24"]
@@ -41,11 +40,11 @@ locals {
   }
 }
 
-#resource "yandex_resourcemanager_folder" "folders" {
-#  for_each = local.folders
-#  name     = each.key
-#  cloud_id = local.cloud_id
-#}
+resource "yandex_resourcemanager_folder" "folders" {
+  for_each = local.folders
+  name     = each.key
+  cloud_id = local.cloud_id
+}
 
 #data "yandex_resourcemanager_folder" "folders" {
 #  for_each   = yandex_resourcemanager_folder.folders
@@ -55,8 +54,8 @@ locals {
 
 
 resource "yandex_vpc_network" "vpc" {
-  # folder_id = var.folder_id
-  name = local.vpc_name
+  folder_id = yandex_resourcemanager_folder.folders["loadbalancer-folder"].id
+  name      = local.vpc_name
 }
 
 #resource "yandex_vpc_subnet" "subnet" {
@@ -71,7 +70,7 @@ resource "yandex_vpc_network" "vpc" {
 resource "yandex_vpc_subnet" "subnets" {
   for_each = local.subnets
   name           = each.key
-  #folder_id      = data.yandex_resourcemanager_folder.folders["keepalived_folder"].id
+  folder_id      = yandex_resourcemanager_folder.folders["loadbalancer-folder"].id
   v4_cidr_blocks = each.value["v4_cidr_blocks"]
   zone           = local.zone
   network_id     = yandex_vpc_network.vpc.id
@@ -88,12 +87,14 @@ module "haproxy-servers" {
   count          = local.haproxy_count
   vm_name        = "haproxy-${format("%02d", count.index + 1)}"
   vpc_name       = local.vpc_name
+  folder_id      = yandex_resourcemanager_folder.folders["loadbalancer-folder"].id
   network_interface = {
     for subnet in yandex_vpc_subnet.subnets :
     subnet.name => {
       subnet_id = subnet.id
+      nat       = true
     }
-    if subnet.name == "keepalived_subnet" #|| subnet.name == "haproxy_subnet"
+    if subnet.name == "loadbalancer-subnet" #|| subnet.name == "haproxy-subnet"
   }
   #subnet_cidrs   = yandex_vpc_subnet.subnet.v4_cidr_blocks
   #subnet_name    = yandex_vpc_subnet.subnet.name
@@ -107,6 +108,7 @@ module "haproxy-servers" {
 data "yandex_compute_instance" "haproxy-servers" {
   count      = length(module.haproxy-servers)
   name       = module.haproxy-servers[count.index].vm_name
+  folder_id  = yandex_resourcemanager_folder.folders["loadbalancer-folder"].id
   depends_on = [module.haproxy-servers]
 }
 
@@ -115,12 +117,14 @@ module "backend-servers" {
   count          = local.backend_count
   vm_name        = "backend-${format("%02d", count.index + 1)}"
   vpc_name       = local.vpc_name
+  folder_id      = yandex_resourcemanager_folder.folders["loadbalancer-folder"].id
   network_interface = {
     for subnet in yandex_vpc_subnet.subnets :
     subnet.name => {
       subnet_id = subnet.id
+      nat       = true
     }
-    if subnet.name == "haproxy_subnet" #|| subnet.name == "backend_subnet"
+    if subnet.name == "loadbalancer-subnet" #|| subnet.name == "backend-subnet"
   }
   #subnet_cidrs   = yandex_vpc_subnet.subnet.v4_cidr_blocks
   #subnet_name    = yandex_vpc_subnet.subnet.name
@@ -142,6 +146,7 @@ module "backend-servers" {
 data "yandex_compute_instance" "backend-servers" {
   count      = length(module.backend-servers)
   name       = module.backend-servers[count.index].vm_name
+  folder_id  = yandex_resourcemanager_folder.folders["loadbalancer-folder"].id
   depends_on = [module.backend-servers]
 }
 
@@ -150,12 +155,14 @@ module "db-servers" {
   count          = local.db_count
   vm_name        = "db-${format("%02d", count.index + 1)}"
   vpc_name       = local.vpc_name
+  folder_id      = yandex_resourcemanager_folder.folders["loadbalancer-folder"].id
   network_interface = {
     for subnet in yandex_vpc_subnet.subnets :
     subnet.name => {
       subnet_id = subnet.id
+      nat       = true
     }
-    if subnet.name == "backend_subnet"
+    if subnet.name == "loadbalancer-subnet"
   }
   #subnet_cidrs   = yandex_vpc_subnet.subnet.v4_cidr_blocks
   #subnet_name    = yandex_vpc_subnet.subnet.name
@@ -169,6 +176,7 @@ module "db-servers" {
 data "yandex_compute_instance" "db-servers" {
   count      = length(module.db-servers)
   name       = module.db-servers[count.index].vm_name
+  folder_id  = yandex_resourcemanager_folder.folders["loadbalancer-folder"].id
   depends_on = [module.db-servers]
 }
 
@@ -196,31 +204,76 @@ resource "local_file" "group_vars_all_file" {
 }
 
 resource "yandex_compute_disk" "disks" {
-  for_each = local.disks
-  name     = each.key
-  size     = each.value["size"]
-  zone     = local.zone
+  for_each  = local.disks
+  name      = each.key
+  folder_id = yandex_resourcemanager_folder.folders["loadbalancer-folder"].id
+  size      = each.value["size"]
+  zone      = local.zone
 }
 
-data "yandex_compute_disk" "disks" {
-  for_each   = yandex_compute_disk.disks
-  name       = each.value["name"]
-  depends_on = [yandex_compute_disk.disks]
+#data "yandex_compute_disk" "disks" {
+#  for_each   = yandex_compute_disk.disks
+#  name       = each.value["name"]
+#  folder_id  = yandex_resourcemanager_folder.folders["loadbalancer-folder"].id
+#  depends_on = [yandex_compute_disk.disks]
+#}
+
+resource "yandex_lb_target_group" "keepalived_group" {
+  name      = "my-keepalived-group"
+  region_id = local.zone
+
+  dynamic "target" {
+    for_each = data.yandex_compute_instance.haproxy-servers[*].network_interface.0.ip_address
+    content {
+      subnet_id = yandex_vpc_subnet.subnets["loadbalancer-subnet"].id
+      address   = target.value
+    }
+  }
+  #target {
+  #  subnet_id  = "${yandex_vpc_subnet.subnets["keepalived-subnet"].id}"
+  #  address = "${data.yandex_compute_instance.haproxy-servers[count.index].network_interface.0.ip_address}"
+  #}
 }
 
+resource "yandex_lb_network_load_balancer" "foo" {
+  name = "my-network-load-balancer"
+
+  listener {
+    name = "my-listener"
+    port = 8080
+    external_address_spec {
+      ip_version = "ipv4"
+    }
+  }
+
+  attached_target_group {
+    target_group_id = "${yandex_lb_target_group.keepalived_group.id}"
+
+    healthcheck {
+      name = "http"
+      http_options {
+        port = 8080
+        path = "/ping"
+      }
+    }
+  }
+}
+
+/*
 resource "yandex_alb_http_router" "test-router" {
   name   = "my-test-router"
+  folder_id = yandex_resourcemanager_folder.folders["loadbalancer-folder"].id
 }
 
 resource "yandex_alb_load_balancer" "test-balancer" {
   name        = "my-load-balancer"
-
+  folder_id = yandex_resourcemanager_folder.folders["loadbalancer-folder"].id
   network_id  = yandex_vpc_network.vpc.id
   
   allocation_policy {
     location {
-      zone_id   = "ru-central1-b"
-      subnet_id = yandex_vpc_subnet.subnets["keepalived_subnet"].id 
+      zone_id   = local.zone
+      subnet_id = yandex_vpc_subnet.subnets["loadbalancer-subnet"].id 
     }
   }
   
@@ -231,7 +284,7 @@ resource "yandex_alb_load_balancer" "test-balancer" {
         external_ipv4_address {
         }
       }
-      ports = [ 80 ]
+      ports = [ 8080 ]
     }    
     http {
       handler {
@@ -248,6 +301,7 @@ resource "yandex_alb_load_balancer" "test-balancer" {
   #  }
   #}
 }
+*/
 /*
 resource "null_resource" "haproxy-servers" {
 
