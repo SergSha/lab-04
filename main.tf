@@ -25,7 +25,7 @@ locals {
     */
   }
 
-  subnet_cidrs    = ["10.10.50.0/24"]
+  #subnet_cidrs    = ["10.10.50.0/24"]
   #subnet_name     = "my_vpc_subnet"
   haproxy_count   = "2"
   backend_count   = "2"
@@ -197,7 +197,7 @@ resource "local_file" "group_vars_all_file" {
       haproxy-servers = data.yandex_compute_instance.haproxy-servers
       backend-servers = data.yandex_compute_instance.backend-servers
       db-servers      = data.yandex_compute_instance.db-servers
-      subnet_cidrs    = local.subnet_cidrs
+      subnet_cidrs    = yandex_vpc_subnet.subnets["loadbalancer-subnet"].v4_cidr_blocks
     }
   )
   filename = "${path.module}/group_vars/all/main.yml"
@@ -220,7 +220,8 @@ resource "yandex_compute_disk" "disks" {
 
 resource "yandex_lb_target_group" "keepalived_group" {
   name      = "my-keepalived-group"
-  region_id = local.zone
+  region_id = "ru-central1"
+  folder_id = yandex_resourcemanager_folder.folders["loadbalancer-folder"].id
 
   dynamic "target" {
     for_each = data.yandex_compute_instance.haproxy-servers[*].network_interface.0.ip_address
@@ -229,79 +230,37 @@ resource "yandex_lb_target_group" "keepalived_group" {
       address   = target.value
     }
   }
-  #target {
-  #  subnet_id  = "${yandex_vpc_subnet.subnets["keepalived-subnet"].id}"
-  #  address = "${data.yandex_compute_instance.haproxy-servers[count.index].network_interface.0.ip_address}"
-  #}
 }
 
-resource "yandex_lb_network_load_balancer" "foo" {
+resource "yandex_lb_network_load_balancer" "keepalived" {
   name = "my-network-load-balancer"
+  folder_id = yandex_resourcemanager_folder.folders["loadbalancer-folder"].id
 
   listener {
     name = "my-listener"
-    port = 8080
+    port = 80
     external_address_spec {
       ip_version = "ipv4"
     }
   }
 
   attached_target_group {
-    target_group_id = "${yandex_lb_target_group.keepalived_group.id}"
+    target_group_id = yandex_lb_target_group.keepalived_group.id
 
     healthcheck {
       name = "http"
       http_options {
-        port = 8080
+        port = 80
         path = "/ping"
       }
     }
   }
 }
 
-/*
-resource "yandex_alb_http_router" "test-router" {
-  name   = "my-test-router"
+data "yandex_lb_network_load_balancer" "keepalived" {
+  name = "my-network-load-balancer"
   folder_id = yandex_resourcemanager_folder.folders["loadbalancer-folder"].id
 }
-
-resource "yandex_alb_load_balancer" "test-balancer" {
-  name        = "my-load-balancer"
-  folder_id = yandex_resourcemanager_folder.folders["loadbalancer-folder"].id
-  network_id  = yandex_vpc_network.vpc.id
-  
-  allocation_policy {
-    location {
-      zone_id   = local.zone
-      subnet_id = yandex_vpc_subnet.subnets["loadbalancer-subnet"].id 
-    }
-  }
-  
-  listener {
-    name = "my-listener"
-    endpoint {
-      address {
-        external_ipv4_address {
-        }
-      }
-      ports = [ 8080 ]
-    }    
-    http {
-      handler {
-        http_router_id = yandex_alb_http_router.test-router.id
-      }
-    }
-  }
-  
-  #log_options {
-  #  discard_rule {
-  #    #http_code_intervals = ["2XX"]
-  #    http_code_intervals = ["ALL"]
-  #    discard_percent = 75
-  #  }
-  #}
-}
-*/
 /*
 resource "null_resource" "haproxy-servers" {
 

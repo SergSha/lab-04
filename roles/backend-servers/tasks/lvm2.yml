@@ -1,0 +1,38 @@
+---
+# vgcreate --shared cluster_vg /dev/mapper/device
+- name: Create a volume groups
+  community.general.lvg:
+    #state: present
+    vg: "{{ item.vg }}"
+    pvs: "{{ item.pv }}"
+    #vg_options: "-Ay -cy" # "--autobackup y --clustered y"
+    vg_options: "--shared"
+  with_items: 
+    - { vg: 'web_vg', pv: '/dev/vdb' }
+  when: "ansible_hostname in 'backend-01'"
+
+- name: Wait a little
+  pause:
+    seconds: 5
+
+# vgchange --lockstart cluster_vg
+- name: start lock manager for shared
+  ansible.builtin.command: "vgchange --lockstart {{ item.vg }}"
+  with_items: 
+    - { vg: 'web_vg' }
+  when: "ansible_hostname in ['backend-02']"
+
+# lvcreate --activate sy -l 100%FREE -n cluster_lv cluster_vg
+- name: Create a logical volume the size of fileio
+  community.general.lvol:
+    vg: "{{ item.vg }}"
+    lv: "{{ item.lv }}"
+    size: "{{ item.size }}"
+    opts: --activate sy
+  with_items: 
+    - { vg: 'web_vg', lv: 'web_lv', size: '100%FREE' }
+  when: "ansible_hostname in 'backend-01'"
+
+- name: Wait a little
+  pause:
+    seconds: 5
