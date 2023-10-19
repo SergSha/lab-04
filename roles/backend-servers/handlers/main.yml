@@ -28,3 +28,9 @@
     state: restarted
     enabled: yes
   when: ansible_os_family == "RedHat"
+
+# systemctl restart pcsd
+- name: "restart pcsd"
+  systemd:
+    name: pcsd.service
+    state: restarted

@@ -87,6 +87,7 @@
     path: /var/www/html
     state: directory
     mode: '0755'
+  when: "ansible_hostname in 'backend-01'"
 
 # cp html/index.php.j2 /var/www/html/index.php
 - name: Template php files
@@ -99,6 +100,7 @@
     - update.php
     - delete.php
     - phpinfo.php
+  when: "ansible_hostname in 'backend-01'"
 
 # systemctl restart php-fpm.service
 - name: Start php-fpm service Debian

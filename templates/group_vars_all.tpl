@@ -15,6 +15,6 @@ ip_address:
 
 domain: "mydomain.test"
 ntp_timezone: "UTC"
-backend_password: "strong_pass" # cluster user: hacluster
+pcs_password: "strong_pass" # cluster user: hacluster
 cluster_name: "hacluster"
 subnet_cidrs: "{ %{ for subnet_cidr in subnet_cidrs ~} ${ subnet_cidr }, %{ endfor ~} }"

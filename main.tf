@@ -39,13 +39,13 @@ locals {
     }
   }
 }
-
+/*
 resource "yandex_resourcemanager_folder" "folders" {
   for_each = local.folders
   name     = each.key
   cloud_id = local.cloud_id
 }
-
+*/
 #data "yandex_resourcemanager_folder" "folders" {
 #  for_each   = yandex_resourcemanager_folder.folders
 #  name       = each.value["name"]
@@ -54,7 +54,7 @@ resource "yandex_resourcemanager_folder" "folders" {
 
 
 resource "yandex_vpc_network" "vpc" {
-  folder_id = yandex_resourcemanager_folder.folders["loadbalancer-folder"].id
+  #folder_id = yandex_resourcemanager_folder.folders["loadbalancer-folder"].id
   name      = local.vpc_name
 }
 
@@ -70,7 +70,7 @@ resource "yandex_vpc_network" "vpc" {
 resource "yandex_vpc_subnet" "subnets" {
   for_each = local.subnets
   name           = each.key
-  folder_id      = yandex_resourcemanager_folder.folders["loadbalancer-folder"].id
+  #folder_id      = yandex_resourcemanager_folder.folders["loadbalancer-folder"].id
   v4_cidr_blocks = each.value["v4_cidr_blocks"]
   zone           = local.zone
   network_id     = yandex_vpc_network.vpc.id
@@ -87,7 +87,7 @@ module "haproxy-servers" {
   count          = local.haproxy_count
   vm_name        = "haproxy-${format("%02d", count.index + 1)}"
   vpc_name       = local.vpc_name
-  folder_id      = yandex_resourcemanager_folder.folders["loadbalancer-folder"].id
+  #folder_id      = yandex_resourcemanager_folder.folders["loadbalancer-folder"].id
   network_interface = {
     for subnet in yandex_vpc_subnet.subnets :
     subnet.name => {
@@ -108,7 +108,7 @@ module "haproxy-servers" {
 data "yandex_compute_instance" "haproxy-servers" {
   count      = length(module.haproxy-servers)
   name       = module.haproxy-servers[count.index].vm_name
-  folder_id  = yandex_resourcemanager_folder.folders["loadbalancer-folder"].id
+  #folder_id  = yandex_resourcemanager_folder.folders["loadbalancer-folder"].id
   depends_on = [module.haproxy-servers]
 }
 
@@ -117,7 +117,7 @@ module "backend-servers" {
   count          = local.backend_count
   vm_name        = "backend-${format("%02d", count.index + 1)}"
   vpc_name       = local.vpc_name
-  folder_id      = yandex_resourcemanager_folder.folders["loadbalancer-folder"].id
+  #folder_id      = yandex_resourcemanager_folder.folders["loadbalancer-folder"].id
   network_interface = {
     for subnet in yandex_vpc_subnet.subnets :
     subnet.name => {
@@ -146,7 +146,7 @@ module "backend-servers" {
 data "yandex_compute_instance" "backend-servers" {
   count      = length(module.backend-servers)
   name       = module.backend-servers[count.index].vm_name
-  folder_id  = yandex_resourcemanager_folder.folders["loadbalancer-folder"].id
+  #folder_id  = yandex_resourcemanager_folder.folders["loadbalancer-folder"].id
   depends_on = [module.backend-servers]
 }
 
@@ -155,7 +155,7 @@ module "db-servers" {
   count          = local.db_count
   vm_name        = "db-${format("%02d", count.index + 1)}"
   vpc_name       = local.vpc_name
-  folder_id      = yandex_resourcemanager_folder.folders["loadbalancer-folder"].id
+  #folder_id      = yandex_resourcemanager_folder.folders["loadbalancer-folder"].id
   network_interface = {
     for subnet in yandex_vpc_subnet.subnets :
     subnet.name => {
@@ -176,7 +176,7 @@ module "db-servers" {
 data "yandex_compute_instance" "db-servers" {
   count      = length(module.db-servers)
   name       = module.db-servers[count.index].vm_name
-  folder_id  = yandex_resourcemanager_folder.folders["loadbalancer-folder"].id
+  #folder_id  = yandex_resourcemanager_folder.folders["loadbalancer-folder"].id
   depends_on = [module.db-servers]
 }
 
@@ -206,7 +206,7 @@ resource "local_file" "group_vars_all_file" {
 resource "yandex_compute_disk" "disks" {
   for_each  = local.disks
   name      = each.key
-  folder_id = yandex_resourcemanager_folder.folders["loadbalancer-folder"].id
+  #folder_id = yandex_resourcemanager_folder.folders["loadbalancer-folder"].id
   size      = each.value["size"]
   zone      = local.zone
 }
@@ -221,7 +221,7 @@ resource "yandex_compute_disk" "disks" {
 resource "yandex_lb_target_group" "keepalived_group" {
   name      = "my-keepalived-group"
   region_id = "ru-central1"
-  folder_id = yandex_resourcemanager_folder.folders["loadbalancer-folder"].id
+  #folder_id = yandex_resourcemanager_folder.folders["loadbalancer-folder"].id
 
   dynamic "target" {
     for_each = data.yandex_compute_instance.haproxy-servers[*].network_interface.0.ip_address
@@ -234,7 +234,7 @@ resource "yandex_lb_target_group" "keepalived_group" {
 
 resource "yandex_lb_network_load_balancer" "keepalived" {
   name = "my-network-load-balancer"
-  folder_id = yandex_resourcemanager_folder.folders["loadbalancer-folder"].id
+  #folder_id = yandex_resourcemanager_folder.folders["loadbalancer-folder"].id
 
   listener {
     name = "my-listener"
@@ -259,7 +259,8 @@ resource "yandex_lb_network_load_balancer" "keepalived" {
 
 data "yandex_lb_network_load_balancer" "keepalived" {
   name = "my-network-load-balancer"
-  folder_id = yandex_resourcemanager_folder.folders["loadbalancer-folder"].id
+  #folder_id = yandex_resourcemanager_folder.folders["loadbalancer-folder"].id
+  depends_on = [yandex_lb_network_load_balancer.keepalived]
 }
 /*
 resource "null_resource" "haproxy-servers" {
