@@ -1,6 +1,6 @@
 ---
 - name: Configuring cluster (step 1)
-  ansible.builtin.command: "pcs host auth backend-01.{{ domain }} backend-02.{{ domain }} -u hacluster -p {{ pcs_password }}"
+  ansible.builtin.command: "pcs host auth backend-01.{{ domain }} backend-02.{{ domain }} backend-03.{{ domain }} -u hacluster -p {{ pcs_password }}"
   #no_log: true
 
 - name: Check for replay (/opt/pcs_config_done exists)
@@ -9,7 +9,7 @@
   register: pcs_config_done
 
 - name: Configuring cluster (step 2)
-  ansible.builtin.command: "pcs cluster setup {{ cluster_name }} backend-01.{{ domain }} backend-02.{{ domain }}"
+  ansible.builtin.command: "pcs cluster setup {{ cluster_name }} backend-01.{{ domain }} backend-02.{{ domain }} backend-03.{{ domain }}"
   when:
     - pcs_config_done.stat.exists != True
 

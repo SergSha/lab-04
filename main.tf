@@ -28,7 +28,7 @@ locals {
   #subnet_cidrs    = ["10.10.50.0/24"]
   #subnet_name     = "my_vpc_subnet"
   haproxy_count   = "2"
-  backend_count   = "2"
+  backend_count   = "3"
   db_count        = "1"
   disks = {
     "web-01" = {

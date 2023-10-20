@@ -1,9 +1,15 @@
 ---
-- name: Include nftables service
-  include_tasks: nftables.yml
+#- name: Include nftables service
+#  include_tasks: nftables.yml
 
 - name: Include setup pcs service
-  include_tasks: pcs_install.yml
+  include_tasks: install_pkgs.yml
+
+- name: Include setup pcs service
+  include_tasks: multipath.yml
+
+- name: Include setup pcs service
+  include_tasks: pcs_setup.yml
 
 - name: Include configure pcs service
   include_tasks: pcs_config1.yml
