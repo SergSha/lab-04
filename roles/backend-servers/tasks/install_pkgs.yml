@@ -54,8 +54,8 @@
   with_items: 
     - { regexp: "system_id_source =", line: "system_id_source = 'uname'" }
     - { regexp: "use_lvmlockd =", line: "use_lvmlockd = 1" }
-  tags: 
-    - lockingtype
+    - { regexp: "use_devicesfile =", line: "use_devicesfile = 1" }
+    #- { regexp: "wait_for_locks =", line: "locking_type = 1" }
 
 #- name: Add to LVM Confifuration File (Filter)
 #  ansible.builtin.lineinfile:
@@ -74,11 +74,8 @@
     line: "{{ item.line }}"
   with_items:
     - { line: "locking_type = 1" }
-  tags: 
-    - lockingtype
 
-# mkdir /mnt/lvm_cluster_file0
-# mkdir /mnt/lvm_cluster_block0
+# mkdir /var/www
 - name: Create directories for cluster mount
   ansible.builtin.file:
     path: "{{ item }}"

@@ -30,12 +30,9 @@ locals {
   haproxy_count   = "2"
   backend_count   = "3"
   db_count        = "1"
-  disks = {
-    "web-01" = {
-      "size" = "1"
-    },
-    "web-02" = {
-      "size" = "1"
+  disk = {
+    "web" = {
+      "size" = "3"
     }
   }
 }
@@ -203,11 +200,19 @@ resource "local_file" "group_vars_all_file" {
   filename = "${path.module}/group_vars/all/main.yml"
 }
 
+#resource "yandex_compute_disk" "disks" {
+#  for_each  = local.disks
+#  name      = each.key
+#  #folder_id = yandex_resourcemanager_folder.folders["loadbalancer-folder"].id
+#  size      = each.value["size"]
+#  zone      = local.zone
+#}
+
 resource "yandex_compute_disk" "disks" {
-  for_each  = local.disks
-  name      = each.key
+  count     = local.backend_count
+  name      = "web-${format("%02d", count.index + 1)}"
   #folder_id = yandex_resourcemanager_folder.folders["loadbalancer-folder"].id
-  size      = each.value["size"]
+  size      = "3"
   zone      = local.zone
 }
 

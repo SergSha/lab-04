@@ -1,4 +1,5 @@
 ---
+# pcs host auth backend-01.mydomain.test backend-02.mydomain.test backend-03.mydomain.test -u hacluster -p strong_pass
 - name: Configuring cluster (step 1)
   ansible.builtin.command: "pcs host auth backend-01.{{ domain }} backend-02.{{ domain }} backend-03.{{ domain }} -u hacluster -p {{ pcs_password }}"
   #no_log: true
@@ -8,6 +9,7 @@
     path: /opt/pcs_config_done
   register: pcs_config_done
 
+# pcs cluster setup hacluster backend-01.mydomain.test backend-02.mydomain.test backend-03.mydomain.test
 - name: Configuring cluster (step 2)
   ansible.builtin.command: "pcs cluster setup {{ cluster_name }} backend-01.{{ domain }} backend-02.{{ domain }} backend-03.{{ domain }}"
   when:
