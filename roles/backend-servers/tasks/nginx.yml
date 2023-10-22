@@ -46,7 +46,7 @@
       src: "nginx/{{ item }}.j2"
       dest: "/etc/nginx/conf.d/{{ item }}.conf"
     loop:
-      #- upstreams.conf
+      #- upstreams
       - phpsite
   
   when: ansible_os_family == "RedHat"
@@ -57,4 +57,3 @@
     name: nginx
     state: restarted
     enabled: yes
-  ignore_errors: true

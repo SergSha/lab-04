@@ -44,7 +44,7 @@ terraform и ansible роль для развертывания серверов
 
 Необходимые файлы размещены в репозитории GitHub по ссылке:
 ```
-https://github.com/SergSha/lab-03.git
+https://github.com/SergSha/lab-04.git
 ```
 
 Схема:
@@ -64,7 +64,7 @@ export TF_VAR_yc_token=$YC_TOKEN
 
 Для того чтобы развернуть стенд, нужно выполнить следующую команду:
 ```
-git clone https://github.com/SergSha/lab-03.git && cd ./lab-03 && \
+git clone https://github.com/SergSha/lab-04.git && cd ./lab-04 && \
 terraform init && terraform apply -auto-approve && \
 sleep 30 && ansible-playbook ./provision.yml
 ```

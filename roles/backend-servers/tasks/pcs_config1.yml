@@ -12,8 +12,7 @@
 # pcs cluster setup hacluster backend-01.mydomain.test backend-02.mydomain.test
 - name: Configuring cluster (step 2)
   ansible.builtin.command: "pcs cluster setup {{ cluster_name }} backend-01.{{ domain }} backend-02.{{ domain }}"
-  when:
-    - pcs_config_done.stat.exists != True
+  when: pcs_config_done.stat.exists != True
 
 # touch /opt/pcs_config_done
 - name: Set replay protection (/opt/pcs_config_done)
@@ -23,8 +22,7 @@
     owner: root
     group: root
     mode: '0744'
-  when:
-    - pcs_config_done.stat.exists != True
+  when: pcs_config_done.stat.exists != True
 
 - name: Configuring cluster (step 3)
   ansible.builtin.command: "{{ item }}"

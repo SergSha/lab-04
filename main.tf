@@ -7,7 +7,7 @@ locals {
 
   folders = {
     "loadbalancer-folder" = {}
-    #"haproxy_folder" = {}
+    #"nginx_folder" = {}
     #"backend_folder" = {}
   }
 
@@ -16,7 +16,7 @@ locals {
       v4_cidr_blocks = ["10.10.10.0/24"]
     }
     /*
-    "haproxy-subnet" = {
+    "nginx-subnet" = {
       v4_cidr_blocks = ["10.10.20.0/24"]
     }
     "backend-subnet" = {
@@ -27,7 +27,7 @@ locals {
 
   #subnet_cidrs  = ["10.10.50.0/24"]
   #subnet_name   = "my_vpc_subnet"
-  haproxy_count = "2"
+  nginx_count = "2"
   backend_count = "2"
   iscsi_count   = "1"
   db_count      = "1"
@@ -51,7 +51,6 @@ resource "yandex_resourcemanager_folder" "folders" {
 #  name       = each.value["name"]
 #  depends_on = [yandex_resourcemanager_folder.folders]
 #}
-
 
 resource "yandex_vpc_network" "vpc" {
   #folder_id = yandex_resourcemanager_folder.folders["loadbalancer-folder"].id
@@ -82,10 +81,10 @@ resource "yandex_vpc_subnet" "subnets" {
 #  depends_on = [yandex_vpc_subnet.subnets]
 #}
 
-module "haproxy-servers" {
+module "nginx-servers" {
   source         = "./modules/instances"
-  count          = local.haproxy_count
-  vm_name        = "haproxy-${format("%02d", count.index + 1)}"
+  count          = local.nginx_count
+  vm_name        = "nginx-${format("%02d", count.index + 1)}"
   vpc_name       = local.vpc_name
   #folder_id      = yandex_resourcemanager_folder.folders["loadbalancer-folder"].id
   network_interface = {
@@ -94,7 +93,7 @@ module "haproxy-servers" {
       subnet_id = subnet.id
       nat       = true
     }
-    if subnet.name == "loadbalancer-subnet" #|| subnet.name == "haproxy-subnet"
+    if subnet.name == "loadbalancer-subnet" #|| subnet.name == "nginx-subnet"
   }
   #subnet_cidrs   = yandex_vpc_subnet.subnet.v4_cidr_blocks
   #subnet_name    = yandex_vpc_subnet.subnet.name
@@ -105,11 +104,11 @@ module "haproxy-servers" {
   depends_on     = [yandex_compute_disk.disks]
 }
 
-data "yandex_compute_instance" "haproxy-servers" {
-  count      = length(module.haproxy-servers)
-  name       = module.haproxy-servers[count.index].vm_name
+data "yandex_compute_instance" "nginx-servers" {
+  count      = length(module.nginx-servers)
+  name       = module.nginx-servers[count.index].vm_name
   #folder_id  = yandex_resourcemanager_folder.folders["loadbalancer-folder"].id
-  depends_on = [module.haproxy-servers]
+  depends_on = [module.nginx-servers]
 }
 
 module "backend-servers" {
@@ -213,7 +212,7 @@ data "yandex_compute_instance" "db-servers" {
 resource "local_file" "inventory_file" {
   content = templatefile("${path.module}/templates/inventory.tpl",
     {
-      haproxy-servers = data.yandex_compute_instance.haproxy-servers
+      nginx-servers = data.yandex_compute_instance.nginx-servers
       backend-servers = data.yandex_compute_instance.backend-servers
       iscsi-servers   = data.yandex_compute_instance.iscsi-servers
       db-servers      = data.yandex_compute_instance.db-servers
@@ -225,7 +224,7 @@ resource "local_file" "inventory_file" {
 resource "local_file" "group_vars_all_file" {
   content = templatefile("${path.module}/templates/group_vars_all.tpl",
     {
-      haproxy-servers = data.yandex_compute_instance.haproxy-servers
+      nginx-servers = data.yandex_compute_instance.nginx-servers
       backend-servers = data.yandex_compute_instance.backend-servers
       iscsi-servers   = data.yandex_compute_instance.iscsi-servers
       db-servers      = data.yandex_compute_instance.db-servers
@@ -264,7 +263,7 @@ resource "yandex_lb_target_group" "keepalived_group" {
   #folder_id = yandex_resourcemanager_folder.folders["loadbalancer-folder"].id
 
   dynamic "target" {
-    for_each = data.yandex_compute_instance.haproxy-servers[*].network_interface.0.ip_address
+    for_each = data.yandex_compute_instance.nginx-servers[*].network_interface.0.ip_address
     content {
       subnet_id = yandex_vpc_subnet.subnets["loadbalancer-subnet"].id
       address   = target.value
@@ -303,13 +302,13 @@ data "yandex_lb_network_load_balancer" "keepalived" {
   depends_on = [yandex_lb_network_load_balancer.keepalived]
 }
 /*
-resource "null_resource" "haproxy-servers" {
+resource "null_resource" "nginx-servers" {
 
-  count = length(module.haproxy-servers)
+  count = length(module.nginx-servers)
 
   # Changes to the instance will cause the null_resource to be re-executed
   triggers = {
-    name = module.haproxy-servers[count.index].vm_name
+    name = module.nginx-servers[count.index].vm_name
   }
 
   
@@ -324,14 +323,14 @@ resource "null_resource" "haproxy-servers" {
     type        = "ssh"
     user        = local.vm_user
     private_key = file(local.ssh_private_key)
-    host        = "${module.haproxy-servers[count.index].instance_external_ip_address}"
+    host        = "${module.nginx-servers[count.index].instance_external_ip_address}"
   }
 
   # Note that the -i flag expects a comma separated list, so the trailing comma is essential!
 
   provisioner "local-exec" {
-    command = "ansible-playbook -u '${local.vm_user}' --private-key '${local.ssh_private_key}' --become -i ./inventory.ini -l '${module.haproxy-servers[count.index].instance_external_ip_address},' provision.yml"
-    #command = "ansible-playbook provision.yml -u '${local.vm_user}' --private-key '${local.ssh_private_key}' --become -i '${element(module.haproxy-servers.nat_ip_address, 0)},' "
+    command = "ansible-playbook -u '${local.vm_user}' --private-key '${local.ssh_private_key}' --become -i ./inventory.ini -l '${module.nginx-servers[count.index].instance_external_ip_address},' provision.yml"
+    #command = "ansible-playbook provision.yml -u '${local.vm_user}' --private-key '${local.ssh_private_key}' --become -i '${element(module.nginx-servers.nat_ip_address, 0)},' "
   }
   
 }

@@ -1,7 +1,7 @@
 
 [all]
-%{ for haproxy-server in haproxy-servers ~}
-${ haproxy-server["name"] } ansible_host=${ haproxy-server.network_interface[0].nat_ip_address }
+%{ for nginx-server in nginx-servers ~}
+${ nginx-server["name"] } ansible_host=${ nginx-server.network_interface[0].nat_ip_address }
 %{ endfor ~}
 %{ for backend-server in backend-servers ~}
 ${ backend-server["name"] } ansible_host=${ backend-server.network_interface[0].nat_ip_address }
@@ -13,9 +13,9 @@ ${ iscsi-server["name"] } ansible_host=${ iscsi-server.network_interface[0].nat_
 ${ db-server["name"] } ansible_host=${ db-server.network_interface[0].nat_ip_address }
 %{ endfor ~}
 
-[haproxy_servers]
-%{ for haproxy-server in haproxy-servers ~}
-${ haproxy-server["name"] }
+[nginx_servers]
+%{ for nginx-server in nginx-servers ~}
+${ nginx-server["name"] }
 %{ endfor ~}
 
 [backend_servers]
