@@ -8,6 +8,9 @@ ip_address:
 %{ for backend-server in backend-servers ~}
   ${ backend-server["name"] }: ${ backend-server.network_interface[0].ip_address }
 %{ endfor ~}
+%{ for iscsi-server in iscsi-servers ~}
+  ${ iscsi-server["name"] }: ${ iscsi-server.network_interface[0].ip_address }
+%{ endfor ~}
 %{ for db-server in db-servers ~}
   ${ db-server["name"] }: ${ db-server.network_interface[0].ip_address }
 %{ endfor ~}

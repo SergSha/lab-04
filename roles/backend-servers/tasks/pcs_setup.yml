@@ -21,12 +21,6 @@
     state: present
     line: "{{ ip_address['backend-02'] }} backend-02.{{ domain }} backend-02"
 
-- name: Add backend-03 to /etc/hosts
-  ansible.builtin.lineinfile:
-    path: "/etc/hosts"
-    state: present
-    line: "{{ ip_address['backend-03'] }} backend-03.{{ domain }} backend-03"
-
 - name: Redhat OS
   block:
 

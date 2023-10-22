@@ -25,8 +25,8 @@
   - name: Install all packages RedHat
     ansible.builtin.dnf:
       name:
-        #- iscsi-initiator-utils
-        #- device-mapper-multipath
+        - iscsi-initiator-utils
+        - device-mapper-multipath
         - python3-cryptography
         - setools-console
         - libsemanage-python3

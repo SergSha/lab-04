@@ -25,16 +25,19 @@ locals {
     */
   }
 
-  #subnet_cidrs    = ["10.10.50.0/24"]
-  #subnet_name     = "my_vpc_subnet"
-  haproxy_count   = "2"
-  backend_count   = "3"
-  db_count        = "1"
+  #subnet_cidrs  = ["10.10.50.0/24"]
+  #subnet_name   = "my_vpc_subnet"
+  haproxy_count = "2"
+  backend_count = "2"
+  iscsi_count   = "1"
+  db_count      = "1"
+  /*
   disk = {
     "web" = {
-      "size" = "3"
+      "size" = "1"
     }
   }
+  */
 }
 /*
 resource "yandex_resourcemanager_folder" "folders" {
@@ -128,6 +131,36 @@ module "backend-servers" {
   #subnet_id      = yandex_vpc_subnet.subnet.id
   vm_user        = local.vm_user
   ssh_public_key = local.ssh_public_key
+  secondary_disk = {}
+  depends_on = [yandex_compute_disk.disks]
+}
+
+data "yandex_compute_instance" "backend-servers" {
+  count      = length(module.backend-servers)
+  name       = module.backend-servers[count.index].vm_name
+  #folder_id  = yandex_resourcemanager_folder.folders["loadbalancer-folder"].id
+  depends_on = [module.backend-servers]
+}
+
+module "iscsi-servers" {
+  source         = "./modules/instances"
+  count          = local.iscsi_count
+  vm_name        = "iscsi-${format("%02d", count.index + 1)}"
+  vpc_name       = local.vpc_name
+  #folder_id      = yandex_resourcemanager_folder.folders["loadbalancer-folder"].id
+  network_interface = {
+    for subnet in yandex_vpc_subnet.subnets :
+    subnet.name => {
+      subnet_id = subnet.id
+      nat       = true
+    }
+    if subnet.name == "loadbalancer-subnet" #|| subnet.name == "backend-subnet"
+  }
+  #subnet_cidrs   = yandex_vpc_subnet.subnet.v4_cidr_blocks
+  #subnet_name    = yandex_vpc_subnet.subnet.name
+  #subnet_id      = yandex_vpc_subnet.subnet.id
+  vm_user        = local.vm_user
+  ssh_public_key = local.ssh_public_key
   secondary_disk = {
     for disk in yandex_compute_disk.disks :
     disk.name => {
@@ -140,11 +173,11 @@ module "backend-servers" {
   depends_on = [yandex_compute_disk.disks]
 }
 
-data "yandex_compute_instance" "backend-servers" {
-  count      = length(module.backend-servers)
-  name       = module.backend-servers[count.index].vm_name
+data "yandex_compute_instance" "iscsi-servers" {
+  count      = length(module.iscsi-servers)
+  name       = module.iscsi-servers[count.index].vm_name
   #folder_id  = yandex_resourcemanager_folder.folders["loadbalancer-folder"].id
-  depends_on = [module.backend-servers]
+  depends_on = [module.iscsi-servers]
 }
 
 module "db-servers" {
@@ -182,6 +215,7 @@ resource "local_file" "inventory_file" {
     {
       haproxy-servers = data.yandex_compute_instance.haproxy-servers
       backend-servers = data.yandex_compute_instance.backend-servers
+      iscsi-servers   = data.yandex_compute_instance.iscsi-servers
       db-servers      = data.yandex_compute_instance.db-servers
     }
   )
@@ -193,6 +227,7 @@ resource "local_file" "group_vars_all_file" {
     {
       haproxy-servers = data.yandex_compute_instance.haproxy-servers
       backend-servers = data.yandex_compute_instance.backend-servers
+      iscsi-servers   = data.yandex_compute_instance.iscsi-servers
       db-servers      = data.yandex_compute_instance.db-servers
       subnet_cidrs    = yandex_vpc_subnet.subnets["loadbalancer-subnet"].v4_cidr_blocks
     }
@@ -209,10 +244,10 @@ resource "local_file" "group_vars_all_file" {
 #}
 
 resource "yandex_compute_disk" "disks" {
-  count     = local.backend_count
+  count     = local.iscsi_count
   name      = "web-${format("%02d", count.index + 1)}"
   #folder_id = yandex_resourcemanager_folder.folders["loadbalancer-folder"].id
-  size      = "3"
+  size      = "1"
   zone      = local.zone
 }
 
