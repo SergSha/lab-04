@@ -62,7 +62,7 @@ export YC_TOKEN=$(yc iam create-token)
 export TF_VAR_yc_token=$YC_TOKEN
 ```
 
-Для того чтобы развернуть стенд, нужно выполнить следующую команду:
+Для того чтобы развернуть стенд, в файле provider.tf нужно вставить свой 'cloud_id' и выполнить следующую команду:
 ```
 git clone https://github.com/SergSha/lab-04.git && cd ./lab-04 && \
 terraform init && terraform apply -auto-approve && \
