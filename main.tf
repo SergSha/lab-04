@@ -69,7 +69,7 @@ resource "yandex_vpc_network" "vpc" {
 resource "yandex_vpc_subnet" "subnets" {
   for_each = local.subnets
   name           = each.key
-  #folder_id      = yandex_resourcemanager_folder.folders["loadbalancer-folder"].id
+  folder_id      = yandex_resourcemanager_folder.folders["loadbalancer-folder"].id
   v4_cidr_blocks = each.value["v4_cidr_blocks"]
   zone           = local.zone
   network_id     = yandex_vpc_network.vpc.id
@@ -107,7 +107,7 @@ module "nginx-servers" {
 data "yandex_compute_instance" "nginx-servers" {
   count      = length(module.nginx-servers)
   name       = module.nginx-servers[count.index].vm_name
-  #folder_id  = yandex_resourcemanager_folder.folders["loadbalancer-folder"].id
+  folder_id  = yandex_resourcemanager_folder.folders["loadbalancer-folder"].id
   depends_on = [module.nginx-servers]
 }
 
@@ -137,7 +137,7 @@ module "backend-servers" {
 data "yandex_compute_instance" "backend-servers" {
   count      = length(module.backend-servers)
   name       = module.backend-servers[count.index].vm_name
-  #folder_id  = yandex_resourcemanager_folder.folders["loadbalancer-folder"].id
+  folder_id  = yandex_resourcemanager_folder.folders["loadbalancer-folder"].id
   depends_on = [module.backend-servers]
 }
 
@@ -175,7 +175,7 @@ module "iscsi-servers" {
 data "yandex_compute_instance" "iscsi-servers" {
   count      = length(module.iscsi-servers)
   name       = module.iscsi-servers[count.index].vm_name
-  #folder_id  = yandex_resourcemanager_folder.folders["loadbalancer-folder"].id
+  folder_id  = yandex_resourcemanager_folder.folders["loadbalancer-folder"].id
   depends_on = [module.iscsi-servers]
 }
 
@@ -205,7 +205,7 @@ module "db-servers" {
 data "yandex_compute_instance" "db-servers" {
   count      = length(module.db-servers)
   name       = module.db-servers[count.index].vm_name
-  #folder_id  = yandex_resourcemanager_folder.folders["loadbalancer-folder"].id
+  folder_id  = yandex_resourcemanager_folder.folders["loadbalancer-folder"].id
   depends_on = [module.db-servers]
 }
 
