@@ -62,11 +62,20 @@ export YC_TOKEN=$(yc iam create-token)
 export TF_VAR_yc_token=$YC_TOKEN
 ```
 
-Для того чтобы развернуть стенд, в файле provider.tf нужно вставить свой 'cloud_id' и выполнить следующую команду:
+Скачиваем проект с гитхаба:
 ```
-git clone https://github.com/SergSha/lab-04.git && cd ./lab-04 && \
+git clone https://github.com/SergSha/lab-04.git && cd ./lab-04
+```
+
+В файле provider.tf нужно вставить свой 'cloud_id':
+```
+cloud_id  = "..."
+```
+
+Для того чтобы развернуть стенд, нужно выполнить следующую команду:
+```
 terraform init && terraform apply -auto-approve && \
-sleep 30 && ansible-playbook ./provision.yml
+sleep 60 && ansible-playbook ./provision.yml
 ```
 
 На всех серверах будут установлены ОС Almalinux 8, настроены смнхронизация времени Chrony, система принудительного контроля доступа SELinux, в качестве firewall будет использоваться NFTables.
