@@ -1,7 +1,7 @@
 locals {
   vm_user         = "cloud-user"
-  ssh_public_key  = "~/.ssh/otus.pub"
-  ssh_private_key = "~/.ssh/otus"
+  ssh_public_key  = "~/.ssh/id_rsa.pub"
+  ssh_private_key = "~/.ssh/id_rsa"
   #vm_name         = "instance"
   vpc_name        = "my_vpc_network"
 
@@ -39,13 +39,13 @@ locals {
   }
   */
 }
-/*
+
 resource "yandex_resourcemanager_folder" "folders" {
   for_each = local.folders
   name     = each.key
   cloud_id = local.cloud_id
 }
-*/
+
 #data "yandex_resourcemanager_folder" "folders" {
 #  for_each   = yandex_resourcemanager_folder.folders
 #  name       = each.value["name"]
@@ -53,7 +53,7 @@ resource "yandex_resourcemanager_folder" "folders" {
 #}
 
 resource "yandex_vpc_network" "vpc" {
-  #folder_id = yandex_resourcemanager_folder.folders["loadbalancer-folder"].id
+  folder_id = yandex_resourcemanager_folder.folders["loadbalancer-folder"].id
   name      = local.vpc_name
 }
 
@@ -237,7 +237,7 @@ resource "local_file" "group_vars_all_file" {
 #resource "yandex_compute_disk" "disks" {
 #  for_each  = local.disks
 #  name      = each.key
-#  #folder_id = yandex_resourcemanager_folder.folders["loadbalancer-folder"].id
+#  folder_id = yandex_resourcemanager_folder.folders["loadbalancer-folder"].id
 #  size      = each.value["size"]
 #  zone      = local.zone
 #}
@@ -245,7 +245,7 @@ resource "local_file" "group_vars_all_file" {
 resource "yandex_compute_disk" "disks" {
   count     = local.iscsi_count
   name      = "web-${format("%02d", count.index + 1)}"
-  #folder_id = yandex_resourcemanager_folder.folders["loadbalancer-folder"].id
+  folder_id = yandex_resourcemanager_folder.folders["loadbalancer-folder"].id
   size      = "1"
   zone      = local.zone
 }
@@ -260,7 +260,7 @@ resource "yandex_compute_disk" "disks" {
 resource "yandex_lb_target_group" "keepalived_group" {
   name      = "my-keepalived-group"
   region_id = "ru-central1"
-  #folder_id = yandex_resourcemanager_folder.folders["loadbalancer-folder"].id
+  folder_id = yandex_resourcemanager_folder.folders["loadbalancer-folder"].id
 
   dynamic "target" {
     for_each = data.yandex_compute_instance.nginx-servers[*].network_interface.0.ip_address
@@ -273,7 +273,7 @@ resource "yandex_lb_target_group" "keepalived_group" {
 
 resource "yandex_lb_network_load_balancer" "keepalived" {
   name = "my-network-load-balancer"
-  #folder_id = yandex_resourcemanager_folder.folders["loadbalancer-folder"].id
+  folder_id = yandex_resourcemanager_folder.folders["loadbalancer-folder"].id
 
   listener {
     name = "my-listener"
@@ -298,7 +298,7 @@ resource "yandex_lb_network_load_balancer" "keepalived" {
 
 data "yandex_lb_network_load_balancer" "keepalived" {
   name = "my-network-load-balancer"
-  #folder_id = yandex_resourcemanager_folder.folders["loadbalancer-folder"].id
+  folder_id = yandex_resourcemanager_folder.folders["loadbalancer-folder"].id
   depends_on = [yandex_lb_network_load_balancer.keepalived]
 }
 /*

@@ -27,7 +27,7 @@
       dest: /etc/nginx/sites-available/upstreams
       remote_src: true
 
-  # sed -i 
+  # echo "                proxy_pass http://backend;" | sed -i 'a\location / {'
   - name: Insert line proxy_pass to /etc/nginx/sites-available/upstreams
     ansible.builtin.lineinfile:
       path: /etc/nginx/sites-available/upstreams
@@ -68,7 +68,7 @@
     loop:
       - conf.d/upstreams.conf
 
-  # echo "                proxy_pass http://backend;" | sed 'a\location / {'
+  # echo "                proxy_pass http://backend;" | sed -i 'a\location / {'
   - name: Insert line proxy_pass to /etc/nginx/sites-available/upstreams
     ansible.builtin.lineinfile:
       path: /etc/nginx/nginx.conf

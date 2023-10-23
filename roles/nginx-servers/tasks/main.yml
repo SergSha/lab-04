@@ -7,3 +7,7 @@
 
 - name: Include nginx service
   include_tasks: nginx.yml
+
+- name: Include selinux setting
+  include_tasks: selinux.yml
+  when: ansible_os_family == "RedHat"
