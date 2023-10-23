@@ -1,7 +1,7 @@
 locals {
   vm_user         = "cloud-user"
-  ssh_public_key  = "~/.ssh/id_rsa.pub"
-  ssh_private_key = "~/.ssh/id_rsa"
+  ssh_public_key  = "~/.ssh/otus.pub"
+  ssh_private_key = "~/.ssh/otus"
   #vm_name         = "instance"
   vpc_name        = "my_vpc_network"
 
@@ -86,7 +86,7 @@ module "nginx-servers" {
   count          = local.nginx_count
   vm_name        = "nginx-${format("%02d", count.index + 1)}"
   vpc_name       = local.vpc_name
-  #folder_id      = yandex_resourcemanager_folder.folders["loadbalancer-folder"].id
+  folder_id      = yandex_resourcemanager_folder.folders["loadbalancer-folder"].id
   network_interface = {
     for subnet in yandex_vpc_subnet.subnets :
     subnet.name => {
@@ -116,7 +116,7 @@ module "backend-servers" {
   count          = local.backend_count
   vm_name        = "backend-${format("%02d", count.index + 1)}"
   vpc_name       = local.vpc_name
-  #folder_id      = yandex_resourcemanager_folder.folders["loadbalancer-folder"].id
+  folder_id      = yandex_resourcemanager_folder.folders["loadbalancer-folder"].id
   network_interface = {
     for subnet in yandex_vpc_subnet.subnets :
     subnet.name => {
@@ -146,7 +146,7 @@ module "iscsi-servers" {
   count          = local.iscsi_count
   vm_name        = "iscsi-${format("%02d", count.index + 1)}"
   vpc_name       = local.vpc_name
-  #folder_id      = yandex_resourcemanager_folder.folders["loadbalancer-folder"].id
+  folder_id      = yandex_resourcemanager_folder.folders["loadbalancer-folder"].id
   network_interface = {
     for subnet in yandex_vpc_subnet.subnets :
     subnet.name => {
@@ -184,7 +184,7 @@ module "db-servers" {
   count          = local.db_count
   vm_name        = "db-${format("%02d", count.index + 1)}"
   vpc_name       = local.vpc_name
-  #folder_id      = yandex_resourcemanager_folder.folders["loadbalancer-folder"].id
+  folder_id      = yandex_resourcemanager_folder.folders["loadbalancer-folder"].id
   network_interface = {
     for subnet in yandex_vpc_subnet.subnets :
     subnet.name => {
@@ -253,7 +253,7 @@ resource "yandex_compute_disk" "disks" {
 #data "yandex_compute_disk" "disks" {
 #  for_each   = yandex_compute_disk.disks
 #  name       = each.value["name"]
-#  folder_id  = yandex_resourcemanager_folder.folders["loadbalancer-folder"].id
+#  #folder_id  = yandex_resourcemanager_folder.folders["loadbalancer-folder"].id
 #  depends_on = [yandex_compute_disk.disks]
 #}
 
