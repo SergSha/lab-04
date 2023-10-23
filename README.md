@@ -72,6 +72,12 @@ git clone https://github.com/SergSha/lab-04.git && cd ./lab-04
 cloud_id  = "..."
 ```
 
+При необходимости в файле main.tf вставить нужные 'ssh_public_key' и 'ssh_private_key', так как по умолчанию соответсвенно id_rsa.pub и id_rsa:
+```
+ssh_public_key  = "~/.ssh/id_rsa.pub"
+ssh_private_key = "~/.ssh/id_rsa"
+```
+
 Для того чтобы развернуть стенд, нужно выполнить следующую команду:
 ```
 terraform init && terraform apply -auto-approve && \
