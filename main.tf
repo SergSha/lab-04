@@ -78,6 +78,7 @@ resource "yandex_vpc_subnet" "subnets" {
 #data "yandex_vpc_subnet" "subnets" {
 #  for_each   = yandex_vpc_subnet.subnets
 #  name       = each.value["name"]
+#  folder_id      = yandex_resourcemanager_folder.folders["loadbalancer-folder"].id
 #  depends_on = [yandex_vpc_subnet.subnets]
 #}
 
